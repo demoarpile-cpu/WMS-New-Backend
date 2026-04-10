@@ -26,6 +26,7 @@ const labelsController = require('../controllers/labelsController');
 const searchController = require('../controllers/searchController');
 
 router.use('/auth', authRoutes);
+router.use('/api/auth', authRoutes); // Add /api prefix for consistency
 const searchRoles = ['super_admin', 'company_admin', 'warehouse_manager', 'inventory_manager', 'viewer', 'picker', 'packer'];
 router.get('/api/search', authenticate, requireRole(...searchRoles), searchController.search);
 router.get('/api/labels', authenticate, requireRole('super_admin', 'company_admin', 'warehouse_manager', 'inventory_manager', 'packer', 'viewer'), labelsController.list);

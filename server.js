@@ -257,10 +257,45 @@ async function start() {
        }
     }
     console.log('Database synced. (MySQL Manual fixes applied)');
-    if (dialect === 'sqlite') {
-      await sequelize.query('PRAGMA foreign_keys = ON');
+    // AUTO-SEED DEMO USERS if they don't exist (For 'Proper' Live Demo Experience)
+    const bcrypt = require('bcryptjs');
+    const { User, Company } = require('./models');
+
+    // Ensure at least one company exists for demo users
+    let defaultCompany = await Company.findByPk(1);
+    if (!defaultCompany) {
+      defaultCompany = await Company.create({
+        id: 1,
+        name: 'KIAAN WMS Demo',
+        code: 'KIAAN',
+        status: 'ACTIVE'
+      });
+      console.log('[SEED] Created default demo company');
     }
-    console.log('Database synced. IDs are now integers (1, 2, 3...).');
+
+    const demoUsers = [
+      { email: 'admin@kiaan-wms.com', password: 'Admin@123', name: 'Super Admin', role: 'super_admin' },
+      { email: 'companyadmin@kiaan-wms.com', password: '123456', name: 'Company Admin', role: 'company_admin' },
+      { email: 'inventorymanager@kiaan-wms.com', password: '123456', name: 'Inventory Manager', role: 'inventory_manager' },
+      { email: 'warehousemanager@kiaan-wms.com', password: '123456', name: 'Warehouse Manager', role: 'warehouse_manager' },
+      { email: 'piker@gmail.com', password: '123456', name: 'Picker', role: 'picker' },
+      { email: 'packer@gmail.com', password: '123456', name: 'Packer', role: 'packer' },
+    ];
+    for (const d of demoUsers) {
+      const exists = await User.findOne({ where: { email: d.email } });
+      if (!exists) {
+        const passwordHash = await bcrypt.hash(d.password, 10);
+        await User.create({
+          email: d.email,
+          passwordHash,
+          name: d.name,
+          role: d.role,
+          companyId: d.role === 'super_admin' ? null : 1, // Fallback to company 1
+          status: 'ACTIVE'
+        });
+        console.log(`[SEED] Created demo user: ${d.email}`);
+      }
+    }
 
     // Initialize Cron AFTER database sync is complete
     cronService.init();
